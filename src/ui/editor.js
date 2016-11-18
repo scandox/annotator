@@ -326,23 +326,44 @@ var Editor = exports.Editor = Widget.extend({
     //
     // Returns nothing.
     submit: function () {
+        var self = this,
+            submissions = [],
+            field;
+
         for (var i = 0, len = this.fields.length; i < len; i++) {
-            var field = this.fields[i];
-            field.submit(field.element, this.annotation);
+            field = this.fields[i];
+            submissions.push(field.submit.bind(null, field.element, this.annotation));
         }
-        if (typeof this.dfd !== 'undefined' && this.dfd !== null) {
-            this.dfd.resolve();
-        }
-        this.hide();
-    },
+
+         // To whatever other submit callbacks there are
+        // Add the editor's final submit behaviour (i.e. resolution of promise)
+        submissions.push(function() { 
+        	if (typeof self.dfd !== 'undefined' && self.dfd !== null) {
+        		self.dfd.resolve();
+          	}
+        	self.hide();
+        });
+
+        // Execute the submission callbacks sequentially
+        // At present I guess that's in order of addField
+		submissions.reduce(function(lastPromise, func) {
+       		return lastPromise.then(function() {
+				// Coerce result to promise as some will be values
+				return Promise.resolve(func());
+			}).catch(function(error) {
+				self.cancel(error.message);
+			});
+        }, Promise.resolve());
+	},
 
     // Public: Cancels the editing process, discarding any edits made to the
     // annotation.
     //
     // Returns itself.
-    cancel: function () {
+    cancel: function (message) {
+        if (!message) message = 'editing cancelled';
         if (typeof this.dfd !== 'undefined' && this.dfd !== null) {
-            this.dfd.reject('editing cancelled');
+            this.dfd.reject(message);
         }
         this.hide();
     },
