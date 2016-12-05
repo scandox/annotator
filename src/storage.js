@@ -397,7 +397,7 @@ HttpStorage.prototype._onError = function (xhr) {
         message = _t("Could not connect to the annotation store! " +
                      "(Error 404)");
     } else if (xhr.status === 500) {
-        message = _t("Internal error in annotation store! " +
+        message = _t("Internal error in annotation store! " + xhr.responseText + 
                      "(Error 500)");
     } else {
         message = _t("Unknown error while speaking to annotation store!");
